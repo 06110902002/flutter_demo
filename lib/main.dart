@@ -1,16 +1,26 @@
 import 'package:flutter/material.dart' hide Page;
+import 'package:provider/provider.dart';
 import 'package:test_flutter/LayoutTest.dart';
+import 'package:test_flutter/SnapAppBar.dart';
+import 'package:test_flutter/TabViewRoute1.dart';
 
 import 'AnimatedListRoute.dart';
+import 'ChangeNotifierProxyProviderTest/BookManagerModel.dart';
+import 'ChangeNotifierProxyProviderTest/BookModel.dart';
+import 'ChangeNotifierProxyProviderTest/ChangeNotifierProxyProviderExample.dart';
 import 'ClipTestRoute.dart';
+import 'CustomScrollView.dart';
 import 'FlexLayoutTestRoute.dart';
 import 'InfiniteListView.dart';
+import 'InheritedWidgetTestRoute.dart';
 import 'Layout1.dart';
 import 'Login.dart';
 import 'LoginPage.dart';
+import 'ProviderRoute.dart';
 import 'ResponsiveColumn.dart';
 import 'ScaffoldRoute.dart';
 import 'SingleChildScrollViewTestRoute.dart';
+import 'WillPopScopeTestRoute.dart';
 import 'WrapAndFlowLayout.dart';
 import 'Page.dart';
 
@@ -54,13 +64,71 @@ void main()
 
   // runApp(Page(text:"test23"));
 
+  // runApp(
+  //   MaterialApp(
+  //     title: 'Flutter Demo App',
+  //     // Page now acts as a screen containing the PageView
+  //     home: Page(text: "My PageView Screen"),
+  //   ),
+  // );
+
+  // runApp(
+  //   MaterialApp(
+  //     title: 'Flutter Demo App',
+  //     home: TabViewRoute1(),
+  //   ),
+  // );
+
+  // runApp(
+  //   MaterialApp(
+  //     title: 'Customscrollview Demo App',
+  //     home: Customscrollview(),
+  //   ),
+  // );
+
+  // runApp(
+  //   MaterialApp(
+  //     title: 'SnapAppBar Demo App',
+  //     home: SnapAppBar(),
+  //   ),
+  // );
+
+  // runApp(
+  //   MaterialApp(
+  //     title: 'SnapAppBar Demo App',
+  //     home: WillPopScopeTestRoute(),
+  //   ),
+  // );
+  // runApp(
+  //   MaterialApp(
+  //     title: 'SnapAppBar Demo App',
+  //     home: InheritedWidgetTestRoute(),
+  //   ),
+  // );
+
+  // runApp(
+  //   ChangeNotifierProvider(
+  //     create: (context) => CounterModel(),
+  //     child: Providerroute(),
+  //   ),
+  // );
+
+
   runApp(
-    MaterialApp(
-      title: 'Flutter Demo App',
-      // Page now acts as a screen containing the PageView
-      home: Page(text: "My PageView Screen"),
-    ),
-  );
+      MultiProvider(
+          providers: [
+            Provider(create: (_) => BookModel()),
+            ChangeNotifierProxyProvider<BookModel, BookManagerModel>(
+              create: (_) => BookManagerModel(BookModel()),
+              update: (_, bookModel, bookManagerModel) => BookManagerModel(bookModel),
+            )
+          ],
+          child: MaterialApp(
+            debugShowCheckedModeBanner: false,
+            home: ChangeNotifierProxyProviderExample(),
+          ),
+  ));
+
 }
 
 // 一个简单的Widget示例

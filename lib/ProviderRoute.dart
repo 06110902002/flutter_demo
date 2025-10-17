@@ -25,6 +25,11 @@ class CounterModel extends ChangeNotifier
         _count = 0;
         notifyListeners();
     }
+    @override
+  void dispose() {
+    super.dispose();
+    print("31--------CounterModel ChangeNotifier 已经自动销毁");
+  }
 }
 
 class CounterPage extends StatelessWidget

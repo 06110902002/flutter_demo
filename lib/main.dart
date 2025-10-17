@@ -23,6 +23,9 @@ import 'SingleChildScrollViewTestRoute.dart';
 import 'WillPopScopeTestRoute.dart';
 import 'WrapAndFlowLayout.dart';
 import 'Page.dart';
+import 'customWidgt/GradientButton.dart';
+import 'drag/Drag.dart';
+import 'drag/GestureTest.dart';
 
 
 
@@ -120,7 +123,15 @@ void main()
             Provider(create: (_) => BookModel()),
             ChangeNotifierProxyProvider<BookModel, BookManagerModel>(
               create: (_) => BookManagerModel(BookModel()),
-              update: (_, bookModel, bookManagerModel) => BookManagerModel(bookModel),
+              //这个写法会创建多个实例对象
+              //update: (_, bookModel, bookManagerModel) => BookManagerModel(bookModel),
+              // 正确的 update 写法
+              update: (_, bookModel, bookManagerModel) {
+                // bookManagerModel! 是由 create 创建的那个实例
+                // 我们要更新它的内部状态，而不是创建一个新的
+                bookManagerModel!.bookModel = bookModel;
+                return bookManagerModel!;
+              },
             )
           ],
           child: MaterialApp(
@@ -128,6 +139,22 @@ void main()
             home: ChangeNotifierProxyProviderExample(),
           ),
   ));
+
+  // runApp(
+  //   MaterialApp(
+  //     title: 'Drag Demo App',
+  //     home: Drag(),
+  //   ),
+  // );
+
+  // runApp(GestureTest());
+
+  // runApp(
+  //   MaterialApp(
+  //     title: '自定义组件',
+  //     home: GradientButtonRoute(),
+  //   ),
+  // );
 
 }
 

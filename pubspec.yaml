@@ -36,6 +36,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   provider: ^6.1.1       # <--- 添加这一行 (请检查 pub.dev 获取最新版本)
   shared_preferences: ^2.2.2
+  extended_image: ^4.0.0  #https://github.com/fluttercandies/extended_image/blob/master/README-ZH.md#%E5%AF%BC%E5%85%A5
 
 dev_dependencies:
   flutter_test:

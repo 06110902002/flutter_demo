@@ -24,6 +24,22 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+
+
+            <!-- 新增：深链接配置 -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <!-- 匹配深链接：app://flutter-route-demo -->
+                <!--深链接格式：app://flutter-route-demo/detail?id=2002&name=Test-->
+                <data
+                    android:scheme="app"
+                    android:host="flutter-route-demo"
+                    />
+
+            </intent-filter>
+
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

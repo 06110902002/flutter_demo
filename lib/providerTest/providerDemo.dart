@@ -274,10 +274,12 @@ class HomePage extends StatelessWidget
                                             onPressed: ()
                                             {
                                                 userRepo.logout();
-                                                Navigator.pushReplacement(
-                                                    context,
-                                                    MaterialPageRoute(builder: (context) => LoginPage())
-                                                );
+                                              // 2. 然后再进行页面跳转，并清空所有旧页面
+                                              Navigator.pushAndRemoveUntil(
+                                                  context,
+                                                  MaterialPageRoute(builder: (context) => LoginPage()),
+                                                      (route) => false // 这个 predicate 返回 false 会移除所有旧路由
+                                              );
                                             },
                                             child: Text('退出登录')
                                         ),

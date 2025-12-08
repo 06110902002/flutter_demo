@@ -8,6 +8,7 @@ import UIKit
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     GeneratedPluginRegistrant.register(with: self)
+    NativeCommunication.register(with: self.registrar(forPlugin: "NativeCommunication")!) //注册NativeCommunication插件
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 }

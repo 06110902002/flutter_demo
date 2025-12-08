@@ -19,6 +19,7 @@ public class MainActivity extends FlutterActivity {
     public void configureFlutterEngine(FlutterEngine flutterEngine) {
         super.configureFlutterEngine(flutterEngine);
         handleDeepLink(getIntent(), flutterEngine);
+        registerJavaMethod();
     }
 
     @Override
@@ -91,5 +92,20 @@ public class MainActivity extends FlutterActivity {
                         put("allParams", allParams);
                     }});
         }
+    }
+
+    private void registerJavaMethod() {
+         String Android_CHANNEL = "com.example.flutter_ios_communication/native";
+
+        new MethodChannel(getFlutterEngine().getDartExecutor().getBinaryMessenger(), Android_CHANNEL)
+                .setMethodCallHandler(
+                        (call, result) -> {
+                            if (call.method.equals("getNativeString")) {
+                                result.success("你好，Flutter！这是来自Android的响应。");
+                            } else {
+                                result.notImplemented();
+                            }
+                        }
+                );
     }
 }

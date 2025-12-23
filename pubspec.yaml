@@ -54,6 +54,20 @@ dependencies:
   bloc: ^8.1.2
   flutter_blue_plus: ^2.0.2
   permission_handler: ^12.0.1
+  #flutter_sticky_header: ^0.8.0 # 检查最新版本  使用第三方库的版本
+  pull_to_refresh: ^2.0.0
+
+  #easy pull_refresh 需要的库
+  path_drawing: ^1.0.1
+  get: ^4.7.2
+  qr_flutter: ^4.1.0
+  flutter_svg: ^2.2.0
+  url_launcher: ^6.3.2
+  carousel_slider: ^5.1.1
+  extended_nested_scroll_view: ^6.2.1
+  rive: ^0.12.4
+  #easy pull_refresh 需要的库
+
 
 dev_dependencies:
   flutter_test:
@@ -80,6 +94,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/imgs/
+    - assets/image/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

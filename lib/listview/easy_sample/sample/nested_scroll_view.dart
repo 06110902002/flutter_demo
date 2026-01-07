@@ -211,5 +211,218 @@ class NestedScrollViewPageState extends State<NestedScrollViewPage>
         ),
       ),
     );
+
+    //上拉加载更多时，不会往下回弹
+    // return Scaffold(
+    //   body: EasyRefresh(
+    //     header: ClassicHeader(
+    //       showText: false,
+    //       dragText: 'Pull to refresh'.tr,
+    //       armedText: 'Release ready'.tr,
+    //       readyText: 'Refreshing...'.tr,
+    //       processingText: 'Refreshing...'.tr,
+    //       processedText: 'Succeeded'.tr,
+    //       noMoreText: 'No more'.tr,
+    //       failedText: 'Failed'.tr,
+    //       messageText: 'Last updated at %T'.tr,
+    //       safeArea: false,
+    //     ),
+    //     footer: ClassicFooter(
+    //       position: IndicatorPosition.locator,
+    //       dragText: 'Pull to load'.tr,
+    //       armedText: 'Release ready'.tr,
+    //       readyText: 'Loading...'.tr,
+    //       processingText: 'Loading...'.tr,
+    //       processedText: 'Succeeded'.tr,
+    //       noMoreText: 'No more'.tr,
+    //       failedText: 'Failed'.tr,
+    //       messageText: 'Last updated at %T'.tr,
+    //     ),
+    //     child: CustomScrollView(
+    //       slivers: [
+    //         SliverList(
+    //           delegate: SliverChildBuilderDelegate((context, index) {
+    //             return const SkeletonItem();
+    //           }, childCount: _listCount),
+    //         ),
+    //         const FooterLocator.sliver(),
+    //       ],
+    //     ),
+    //     onRefresh: () async {
+    //       await Future.delayed(const Duration(seconds: 2), () {
+    //         if (mounted) {
+    //           setState(() {
+    //             _listCount = 20;
+    //           });
+    //         }
+    //       });
+    //     },
+    //     onLoad: () async {
+    //       await Future.delayed(const Duration(seconds: 2), () {
+    //         if (mounted) {
+    //           setState(() {
+    //             _listCount += 10;
+    //           });
+    //         }
+    //       });
+    //     },
+    //   ),
+    // );
+
+    //下面的方式  上拉加载更多也不会回弹
+    // return Scaffold(
+    //   appBar: AppBar(
+    //     title: const Text('NestedScrollView'),
+    //   ),
+    //   body: Column(
+    //     children: <Widget>[
+    //       TabBar(
+    //         controller: _tabController,
+    //         labelColor: themeData.colorScheme.primary,
+    //         indicatorColor: themeData.colorScheme.primary,
+    //         onTap: (index) {
+    //           setState(() {
+    //             _tabIndex = index;
+    //           });
+    //         },
+    //         tabs: const <Widget>[
+    //           Tab(text: 'List'),
+    //           Tab(text: 'Grid'),
+    //         ],
+    //       ),
+    //       Expanded(
+    //         child: IndexedStack(
+    //           index: _tabIndex,
+    //           children: <Widget>[
+    //             ExtendedVisibilityDetector(
+    //               uniqueKey: const Key('Tab0'),
+    //               child: EasyRefresh(
+    //                 header: ClassicHeader(
+    //                   showText: false,
+    //                   dragText: 'Pull to refresh'.tr,
+    //                   armedText: 'Release ready'.tr,
+    //                   readyText: 'Refreshing...'.tr,
+    //                   processingText: 'Refreshing...'.tr,
+    //                   processedText: 'Succeeded'.tr,
+    //                   noMoreText: 'No more'.tr,
+    //                   failedText: 'Failed'.tr,
+    //                   messageText: 'Last updated at %T'.tr,
+    //                   safeArea: false,
+    //                 ),
+    //                 footer: ClassicFooter(
+    //                   position: IndicatorPosition.locator,
+    //                   dragText: 'Pull to load'.tr,
+    //                   armedText: 'Release ready'.tr,
+    //                   readyText: 'Loading...'.tr,
+    //                   processingText: 'Loading...'.tr,
+    //                   processedText: 'Succeeded'.tr,
+    //                   noMoreText: 'No more'.tr,
+    //                   failedText: 'Failed'.tr,
+    //                   messageText: 'Last updated at %T'.tr,
+    //                 ),
+    //                 child: CustomScrollView(
+    //                   slivers: [
+    //                     SliverList(
+    //                       delegate: SliverChildBuilderDelegate((
+    //                         context,
+    //                         index,
+    //                       ) {
+    //                         return const SkeletonItem();
+    //                       }, childCount: _listCount),
+    //                     ),
+    //                     const FooterLocator.sliver(),
+    //                   ],
+    //                 ),
+    //                 onRefresh: () async {
+    //                   await Future.delayed(const Duration(seconds: 2), () {
+    //                     if (mounted) {
+    //                       setState(() {
+    //                         _listCount = 20;
+    //                       });
+    //                     }
+    //                   });
+    //                 },
+    //                 onLoad: () async {
+    //                   await Future.delayed(const Duration(seconds: 2), () {
+    //                     if (mounted) {
+    //                       setState(() {
+    //                         _listCount += 10;
+    //                       });
+    //                     }
+    //                   });
+    //                 },
+    //               ),
+    //             ),
+    //             ExtendedVisibilityDetector(
+    //               uniqueKey: const Key('Tab1'),
+    //               child: EasyRefresh(
+    //                 header: ClassicHeader(
+    //                   dragText: 'Pull to refresh'.tr,
+    //                   armedText: 'Release ready'.tr,
+    //                   readyText: 'Refreshing...'.tr,
+    //                   processingText: 'Refreshing...'.tr,
+    //                   processedText: 'Succeeded'.tr,
+    //                   noMoreText: 'No more'.tr,
+    //                   failedText: 'Failed'.tr,
+    //                   messageText: 'Last updated at %T'.tr,
+    //                   safeArea: false,
+    //                 ),
+    //                 footer: ClassicFooter(
+    //                   position: IndicatorPosition.locator,
+    //                   dragText: 'Pull to load'.tr,
+    //                   armedText: 'Release ready'.tr,
+    //                   readyText: 'Loading...'.tr,
+    //                   processingText: 'Loading...'.tr,
+    //                   processedText: 'Succeeded'.tr,
+    //                   noMoreText: 'No more'.tr,
+    //                   failedText: 'Failed'.tr,
+    //                   messageText: 'Last updated at %T'.tr,
+    //                 ),
+    //                 child: CustomScrollView(
+    //                   slivers: [
+    //                     SliverGrid(
+    //                       delegate: SliverChildBuilderDelegate((
+    //                         context,
+    //                         index,
+    //                       ) {
+    //                         return const SkeletonItem(
+    //                           direction: Axis.horizontal,
+    //                         );
+    //                       }, childCount: _gridCount),
+    //                       gridDelegate:
+    //                           const SliverGridDelegateWithFixedCrossAxisCount(
+    //                             crossAxisCount: 2,
+    //                             childAspectRatio: 6 / 7,
+    //                           ),
+    //                     ),
+    //                     const FooterLocator.sliver(),
+    //                   ],
+    //                 ),
+    //                 onRefresh: () async {
+    //                   await Future.delayed(const Duration(seconds: 2), () {
+    //                     if (mounted) {
+    //                       setState(() {
+    //                         _gridCount = 30;
+    //                       });
+    //                     }
+    //                   });
+    //                 },
+    //                 onLoad: () async {
+    //                   await Future.delayed(const Duration(seconds: 2), () {
+    //                     if (mounted) {
+    //                       setState(() {
+    //                         _gridCount += 10;
+    //                       });
+    //                     }
+    //                   });
+    //                 },
+    //               ),
+    //             ),
+    //           ],
+    //         ),
+    //       ),
+    //     ],
+    //   ),
+    // );
   }
 }

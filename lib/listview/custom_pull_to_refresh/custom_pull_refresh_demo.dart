@@ -251,6 +251,7 @@ class _ScrollDemoPageState extends State<ScrollDemoPage> {
           _isHoldingHeader = false;
           _isAnimatingClose = false;
           _hideHeaderTimer?.cancel();
+          print("取消定时任务");
         });
       }
     }
@@ -303,6 +304,9 @@ class _ScrollDemoPageState extends State<ScrollDemoPage> {
                 if (headViewHeight > max_head_view_height) {
                   headViewHeight = max_head_view_height;
                 }
+              }
+              if (headViewHeight < 0) {
+                headViewHeight = 0;
               }
 
               // By using AnimatedContainer and dynamically changing the duration,

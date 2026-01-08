@@ -25,6 +25,8 @@ enum ScrollDirection {
 enum ScrollPhase {
   dragging, // 拖动中
   ballistic, // 回弹中
+  ballisticUp, //向上回弹
+  ballisticDown, //向下回弹
   settling, // 回弹结束
   idle, // 静止
 }
@@ -75,16 +77,36 @@ class ScrollPositionNotifier extends ChangeNotifier {
     _scheduleNotify();
   }
 
+  /// 开始回弹 区分回弹方向：向下还是向上
+  void startBallisticWithDirection(
+    double position,
+    ScrollPhase ballisticDirection,
+    ScrollDirection direction,
+  ) {
+    _position = position;
+    _phase = ballisticDirection;
+    _direction = direction; // 回弹区分向下还是向上
+    _scheduleNotify();
+  }
+
   /// 回弹过程中
   void updateBallistic(double position) {
-    if (_phase != ScrollPhase.ballistic) return;
+    if (_phase != ScrollPhase.ballistic &&
+        _phase != ScrollPhase.ballisticUp &&
+        _phase != ScrollPhase.ballisticDown) {
+      return;
+    }
     _position = position;
     _scheduleNotify();
   }
 
   /// 回弹结束
   void finishBallistic() {
-    if (_phase != ScrollPhase.ballistic) return;
+    if (_phase != ScrollPhase.ballistic &&
+        _phase != ScrollPhase.ballisticUp &&
+        _phase != ScrollPhase.ballisticDown) {
+      return;
+    }
     _phase = ScrollPhase.settling;
     _scheduleNotify();
   }
@@ -125,6 +147,20 @@ class NotifyingBouncingScrollPhysics extends BouncingScrollPhysics {
     return super.applyPhysicsToUserOffset(position, offset);
   }
 
+  // @override
+  // Simulation? createBallisticSimulation(
+  //   ScrollMetrics position,
+  //   double velocity,
+  // ) {
+  //   final sim = super.createBallisticSimulation(position, velocity);
+  //   if (sim == null) {
+  //     // 如果没有产生模拟（例如，滚动没有超出边界），则通知变为静止
+  //     notifier.settleToIdle();
+  //     return null;
+  //   }
+  //   return _NotifierSimulation(sim, notifier, position.pixels);
+  // }
+
   @override
   Simulation? createBallisticSimulation(
     ScrollMetrics position,
@@ -136,35 +172,114 @@ class NotifyingBouncingScrollPhysics extends BouncingScrollPhysics {
       notifier.settleToIdle();
       return null;
     }
-    return _NotifierSimulation(sim, notifier, position.pixels);
+
+    //向上回弹
+    final bool isOverscrollTop = position.pixels < position.minScrollExtent;
+    //向下回弹
+    final bool isOverscrollBottom = position.pixels > position.maxScrollExtent;
+    final ScrollPhase ballistDirection = isOverscrollTop
+        ? ScrollPhase.ballisticUp
+        : ScrollPhase.ballisticDown;
+    final ScrollDirection direction = isOverscrollTop
+        ? ScrollDirection.up
+        : ScrollDirection.down;
+    print(
+      "172-------------isOverscrollTop = $isOverscrollTop  isOverscrollBottom = $isOverscrollBottom",
+    );
+
+    final bool isBounce = isOverscrollTop || isOverscrollBottom;
+
+    return _NotifierSimulation(
+      sim,
+      notifier,
+      position.pixels,
+      isBounce,
+      ballistDirection,
+      direction,
+    );
   }
 }
 
 /// =======================
 /// Simulation 包装
 /// =======================
+// class _NotifierSimulation extends Simulation {
+//   final Simulation _sim;
+//   final ScrollPositionNotifier _notifier;
+//   bool _ended = false;
+//
+//   _NotifierSimulation(this._sim, this._notifier, double startPosition) {
+//     _notifier.startBallistic(startPosition);
+//   }
+//
+//   @override
+//   double x(double time) {
+//     final value = _sim.x(time);
+//     _notifier.updateBallistic(value);
+//
+//     if (!_ended && _sim.isDone(time)) {
+//       _ended = true;
+//       _notifier.finishBallistic();
+//       // 在下一帧转为 idle，确保 settling 状态可以被 UI 观察到
+//       WidgetsBinding.instance.addPostFrameCallback((_) {
+//         _notifier.settleToIdle();
+//       });
+//     }
+//     return value;
+//   }
+//
+//   @override
+//   double dx(double time) => _sim.dx(time);
+//
+//   @override
+//   bool isDone(double time) => _sim.isDone(time);
+// }
+
 class _NotifierSimulation extends Simulation {
   final Simulation _sim;
   final ScrollPositionNotifier _notifier;
+  final bool _isBounce;
+  final ScrollPhase _ballisticDirection;
+  final ScrollDirection _direction;
+
   bool _ended = false;
 
-  _NotifierSimulation(this._sim, this._notifier, double startPosition) {
-    _notifier.startBallistic(startPosition);
+  _NotifierSimulation(
+    this._sim,
+    this._notifier,
+    double startPosition,
+    this._isBounce,
+    this._ballisticDirection,
+    this._direction,
+  ) {
+    if (_isBounce) {
+      _notifier.startBallisticWithDirection(
+        startPosition,
+        _ballisticDirection,
+        _direction,
+      );
+    }
   }
 
   @override
   double x(double time) {
     final value = _sim.x(time);
-    _notifier.updateBallistic(value);
 
-    if (!_ended && _sim.isDone(time)) {
-      _ended = true;
-      _notifier.finishBallistic();
-      // 在下一帧转为 idle，确保 settling 状态可以被 UI 观察到
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _notifier.settleToIdle();
-      });
+    if (_isBounce) {
+      _notifier.updateBallistic(value);
+
+      if (!_ended && _sim.isDone(time)) {
+        _ended = true;
+
+        _notifier.finishBallistic();
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          print("269----------回弹结束，回到静止态");
+          _notifier.settleToIdle();
+        });
+      }
     }
+
     return value;
   }
 
@@ -221,10 +336,16 @@ class _ScrollDemoPageState extends State<ScrollDemoPage> {
   }
 
   void _handleScrollPhaseChange() {
+    if (_isHoldingHeader) return;
     // When a pull-to-refresh is triggered
-    if (_notifier.phase == ScrollPhase.ballistic &&
+    bool canTriggerRefresh =
+        _notifier.phase == ScrollPhase.ballisticUp &&
         _previousPhase == ScrollPhase.dragging &&
-        _notifier.position.abs() > max_head_view_height) {
+        _notifier.position.abs() > max_head_view_height;
+    print(
+      "335-----------canTriggerRefresh = $canTriggerRefresh  _heldHeaderHeight = $_heldHeaderHeight  状态 = ${statusText()}'",
+    );
+    if (canTriggerRefresh) {
       setState(() {
         _heldHeaderHeight = -_notifier.position;
         if (_heldHeaderHeight > max_head_view_height) {
@@ -239,6 +360,9 @@ class _ScrollDemoPageState extends State<ScrollDemoPage> {
           setState(() {
             _isHoldingHeader = false;
             _isAnimatingClose = true; // Start the closing animation
+            print(
+              "353-----------刷新完成  _heldHeaderHeight = $_heldHeaderHeight  状态 = ${statusText()}'",
+            );
           });
         });
       });
@@ -251,7 +375,7 @@ class _ScrollDemoPageState extends State<ScrollDemoPage> {
           _isHoldingHeader = false;
           _isAnimatingClose = false;
           _hideHeaderTimer?.cancel();
-          print("取消定时任务");
+          print("371------取消定时任务");
         });
       }
     }
@@ -269,6 +393,10 @@ class _ScrollDemoPageState extends State<ScrollDemoPage> {
     switch (_notifier.phase) {
       case ScrollPhase.ballistic:
         return '回弹中';
+      case ScrollPhase.ballisticUp:
+        return '向上回弹中';
+      case ScrollPhase.ballisticDown:
+        return '向下回弹中';
       case ScrollPhase.settling:
         return '回弹结束';
       case ScrollPhase.idle:
@@ -308,7 +436,9 @@ class _ScrollDemoPageState extends State<ScrollDemoPage> {
               if (headViewHeight < 0) {
                 headViewHeight = 0;
               }
-
+              // print(
+              //   "427----------headViewHeight = $headViewHeight  _notifier.pos = ${_notifier.position}",
+              // );
               // By using AnimatedContainer and dynamically changing the duration,
               // we get animation only when we want it.
               return AnimatedContainer(
@@ -320,11 +450,11 @@ class _ScrollDemoPageState extends State<ScrollDemoPage> {
                 height: headViewHeight,
                 onEnd: () {
                   // Reset the flag after the animation is done
-                  if (_isAnimatingClose) {
-                    setState(() {
-                      _isAnimatingClose = false;
-                    });
-                  }
+                  // if (_isAnimatingClose) {
+                  //   setState(() {
+                  //     _isAnimatingClose = false;
+                  //   });
+                  // }
                 },
                 color: Colors.yellow,
                 alignment: Alignment.center,

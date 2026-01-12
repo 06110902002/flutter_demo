@@ -86,7 +86,7 @@ extension MessagePriorityExtension on MessagePriority {
 /// 消息状态
 enum MessageState {
   pending, // 等待中
-  ready, // 准备就绪（延迟时间已到）
+  ready, // 准备就绪
   processing, // 处理中
   completed, // 已完成
   cancelled, // 已取消
@@ -109,27 +109,22 @@ abstract class Message {
 
   MessageState get state => _state;
 
-  /// 检查消息是否可以执行
   bool get isReadyForExecution => _state == MessageState.ready;
 
-  /// 准备执行消息
   void markReady() {
     if (_state == MessageState.pending) {
       _state = MessageState.ready;
     }
   }
 
-  /// 标记为处理中
   void markProcessing() {
     _state = MessageState.processing;
   }
 
-  /// 标记为已完成
   void markCompleted() {
     _state = MessageState.completed;
   }
 
-  /// 标记为已取消
   void markCancelled() {
     _state = MessageState.cancelled;
   }
@@ -167,7 +162,6 @@ class TaskMessage extends Message {
 /// 延迟消息
 class DelayedMessage extends TaskMessage {
   final Duration delay;
-  Timer? _delayTimer;
 
   DelayedMessage({
     required String id,
@@ -183,19 +177,6 @@ class DelayedMessage extends TaskMessage {
          priority: priority,
          extra: extra,
        );
-
-  /// 开始延迟计时
-  void startDelayTimer(void Function() onDelayComplete) {
-    _delayTimer = Timer(delay, onDelayComplete);
-  }
-
-  /// 取消延迟计时
-  @override
-  void markCancelled() {
-    super.markCancelled();
-    _delayTimer?.cancel();
-    _delayTimer = null;
-  }
 }
 
 /// Handler状态
@@ -229,15 +210,26 @@ extension HandlerStateExtension on HandlerState {
   }
 }
 
-/// 简单的优先队列实现
-class _PriorityMessageQueue {
+/// 优化的消息队列实现
+class _OptimizedMessageQueue {
   final List<Message> _messages = [];
+
+  // 使用StreamController实现事件通知
+  final StreamController<void> _notificationController =
+      StreamController<void>.broadcast();
+  bool _isNotifying = false;
 
   /// 添加消息到队列
   void add(Message message) {
     _messages.add(message);
-    // 重新排序
     _sortMessages();
+
+    // 如果有监听者，发送通知
+    if (_notificationController.hasListener && !_isNotifying) {
+      _isNotifying = true;
+      _notificationController.add(null);
+      _isNotifying = false;
+    }
   }
 
   /// 排序消息
@@ -256,6 +248,34 @@ class _PriorityMessageQueue {
     });
   }
 
+  /// 检查是否有可执行消息
+  bool hasExecutableMessage() {
+    for (var message in _messages) {
+      if (message.isReadyForExecution) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// 等待可执行消息（带超时）
+  Future<bool> waitForMessage({
+    Duration timeout = const Duration(seconds: 60),
+  }) async {
+    // 如果已经有可执行消息，直接返回
+    if (hasExecutableMessage()) {
+      return true;
+    }
+
+    // 等待通知
+    try {
+      await _notificationController.stream.first.timeout(timeout);
+      return hasExecutableMessage();
+    } on TimeoutException {
+      return false;
+    }
+  }
+
   /// 获取下一个可执行的消息
   Message? getNextExecutableMessage() {
     for (var message in _messages) {
@@ -268,7 +288,8 @@ class _PriorityMessageQueue {
 
   /// 移除消息
   bool remove(Message message) {
-    return _messages.remove(message);
+    final removed = _messages.remove(message);
+    return removed;
   }
 
   /// 移除并返回下一个可执行的消息
@@ -304,24 +325,38 @@ class _PriorityMessageQueue {
   /// 通知队列重新排序（当消息状态变化时调用）
   void notifyChanged() {
     _sortMessages();
+    // 发送通知
+    if (_notificationController.hasListener && !_isNotifying) {
+      _isNotifying = true;
+      _notificationController.add(null);
+      _isNotifying = false;
+    }
+  }
+
+  /// 销毁
+  void dispose() {
+    _notificationController.close();
   }
 }
 
-/// Handler消息队列
+/// 优化的Handler消息队列
 class DartHandler {
-  // 消息队列（使用自定义优先队列）
-  final _PriorityMessageQueue _messageQueue = _PriorityMessageQueue();
+  // 消息队列
+  final _OptimizedMessageQueue _messageQueue = _OptimizedMessageQueue();
   final Map<String, Message> _messageMap = {};
+  final Map<String, Timer> _timerMap = {};
 
-  // 处理定时器
-  Timer? _processingTimer;
+  // 处理任务
+  Future<void>? _processingTask;
   bool _isProcessing = false;
 
   // 状态
   HandlerState _state = HandlerState.idle;
 
+  // 停止标志
+  bool _shouldStop = false;
+
   // 配置
-  final int _processingIntervalMs;
   final bool _debugLogging;
 
   // 统计信息
@@ -334,22 +369,14 @@ class DartHandler {
   final StreamController<void> _eventController =
       StreamController<void>.broadcast();
 
-  DartHandler._({int processingIntervalMs = 100, bool debugLogging = false})
-    : _processingIntervalMs = processingIntervalMs,
-      _debugLogging = debugLogging {
+  DartHandler._({bool debugLogging = false}) : _debugLogging = debugLogging {
     _log('Handler初始化完成');
   }
 
   static DartHandler? _instance;
 
-  static DartHandler getInstance({
-    int processingIntervalMs = 100,
-    bool debugLogging = false,
-  }) {
-    _instance ??= DartHandler._(
-      processingIntervalMs: processingIntervalMs,
-      debugLogging: debugLogging,
-    );
+  static DartHandler getInstance({bool debugLogging = false}) {
+    _instance ??= DartHandler._(debugLogging: debugLogging);
     return _instance!;
   }
 
@@ -375,14 +402,16 @@ class DartHandler {
       return;
     }
 
-    if (_state == HandlerState.stopped) {
-      throw Exception('Handler已停止，无法重新启动');
-    }
+    // if (_state == HandlerState.stopped) {
+    //   throw Exception('Handler已停止，无法重新启动');
+    // }
 
     _state = HandlerState.running;
+    _shouldStop = false;
     _log('Handler启动');
     _eventController.add(null);
 
+    // 启动异步处理循环
     _startProcessingLoop();
   }
 
@@ -393,8 +422,6 @@ class DartHandler {
     _state = HandlerState.paused;
     _log('Handler已暂停');
     _eventController.add(null);
-
-    _stopProcessingLoop();
   }
 
   /// 恢复
@@ -405,7 +432,10 @@ class DartHandler {
     _log('Handler已恢复');
     _eventController.add(null);
 
-    _startProcessingLoop();
+    // 如果处理循环没有运行，重新启动
+    if (_processingTask == null) {
+      _startProcessingLoop();
+    }
   }
 
   /// 停止
@@ -413,9 +443,14 @@ class DartHandler {
     if (_state == HandlerState.stopped) return;
 
     _state = HandlerState.stopped;
+    _shouldStop = true;
     _log('Handler正在停止...');
 
-    _stopProcessingLoop();
+    // 取消所有定时器
+    _cancelAllTimers();
+
+    // 等待当前处理任务完成
+    await _processingTask?.catchError((_) {});
 
     _log('Handler已停止');
     _eventController.add(null);
@@ -504,6 +539,10 @@ class DartHandler {
     _messageQueue.remove(message);
     _messageMap.remove(id);
 
+    // 取消定时器
+    _timerMap[id]?.cancel();
+    _timerMap.remove(id);
+
     // 标记消息为已取消
     message.markCancelled();
 
@@ -517,6 +556,9 @@ class DartHandler {
   /// 取消所有消息
   Future<void> cancelAll() async {
     _log('取消所有消息');
+
+    // 取消所有定时器
+    _cancelAllTimers();
 
     // 取消所有消息
     for (var message in _messageMap.values) {
@@ -536,42 +578,53 @@ class DartHandler {
 
   /// 私有方法：启动处理循环
   void _startProcessingLoop() {
-    if (_processingTimer != null) return;
+    if (_processingTask != null) return;
 
-    _processingTimer = Timer.periodic(
-      Duration(milliseconds: _processingIntervalMs),
-      (_) => _processMessages(),
-    );
+    _processingTask = _processingLoop();
+  }
 
+  /// 处理循环（混合方案：事件驱动+轻量轮询）
+  Future<void> _processingLoop() async {
     _log('消息处理循环已启动');
-  }
 
-  /// 私有方法：停止处理循环
-  void _stopProcessingLoop() {
-    _processingTimer?.cancel();
-    _processingTimer = null;
-    _isProcessing = false;
+    while (_state == HandlerState.running && !_shouldStop) {
+      try {
+        // 使用混合方案：
+        // 1. 先检查是否有可执行消息
+        // 2. 如果没有，等待一小段时间再检查
+        if (_messageQueue.hasExecutableMessage()) {
+          // 处理消息
+          final message = _messageQueue.removeNextExecutable();
+          if (message != null) {
+            await _processSingleMessage(message);
+          }
+        } else {
+          // 没有可执行消息，等待100ms再检查
+          // 这比原来的100ms轮询要好，因为：
+          // 1. 使用await让出CPU
+          // 2. 100ms间隔足够小，响应迅速
+          // 3. 避免了Completer的死锁问题
+          await Future.delayed(const Duration(milliseconds: 100));
+        }
+      } catch (e) {
+        _log('处理循环异常: $e');
+        // 发生异常时暂停一下，防止快速循环出错
+        await Future.delayed(const Duration(milliseconds: 1000));
+      }
+    }
+
     _log('消息处理循环已停止');
+    _processingTask = null;
   }
 
-  /// 处理消息
-  Future<void> _processMessages() async {
-    if (_isProcessing || _state != HandlerState.running) {
-      return;
-    }
-
-    // 获取下一个可执行的消息
-    final message = _messageQueue.removeNextExecutable();
-    if (message == null) {
-      _log("56------无消息");
-      return;
-    }
-
+  /// 处理单个消息
+  Future<void> _processSingleMessage(Message message) async {
     _isProcessing = true;
 
     try {
       // 从映射表中移除
       _messageMap.remove(message.id);
+      _timerMap.remove(message.id);
 
       _log('开始处理消息: ${message.id} (${message.priority.displayName}优先级)');
 
@@ -592,7 +645,7 @@ class DartHandler {
 
   /// 设置延迟消息
   void _setupDelayedMessage(DelayedMessage message) {
-    message.startDelayTimer(() {
+    final timer = Timer(message.delay, () {
       if (message.state == MessageState.pending) {
         // 延迟时间到，标记消息为可执行状态
         message.markReady();
@@ -604,6 +657,17 @@ class DartHandler {
         _eventController.add(null);
       }
     });
+
+    _timerMap[message.id] = timer;
+  }
+
+  /// 取消所有定时器
+  void _cancelAllTimers() {
+    for (final timer in _timerMap.values) {
+      timer.cancel();
+    }
+    _timerMap.clear();
+    _log('所有定时器已取消');
   }
 
   /// 日志
@@ -625,6 +689,7 @@ class DartHandler {
   Future<void> dispose() async {
     await stop();
     await _eventController.close();
+    _messageQueue.dispose();
     _instance = null;
   }
 }
@@ -1272,7 +1337,7 @@ class _HandlerDemoPageState extends State<HandlerDemoPage> {
               Text('• 任务类型: 普通任务、延迟任务（真正延迟执行）'),
               Text('• 任务取消: 支持单个取消和批量取消'),
               Text('• 状态管理: 支持启动、暂停、恢复、停止'),
-              Text('• 资源管理: 空队列不占用资源，自动清理'),
+              Text('• 性能优化: 混合方案，无消息时100ms间隔检查，避免CPU空转'),
               SizedBox(height: 16),
               Text('操作说明:'),
               SizedBox(height: 8),

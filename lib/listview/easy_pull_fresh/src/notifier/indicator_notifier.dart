@@ -578,6 +578,7 @@ abstract class IndicatorNotifier extends ChangeNotifier {
       }
       return;
     }
+    //print("581--------_updateMode oldMode = $oldMode  _mode = ${_mode}");
     // Update mode
     _updateMode(oldOffset);
     // Need notify
@@ -646,6 +647,7 @@ abstract class IndicatorNotifier extends ChangeNotifier {
             // Trigger task if in failed state.
             _result = IndicatorResult.none;
             _mode = IndicatorMode.processing;
+            print("650------------ mode = $_mode");
           } else {
             // The state does not change until the end
             return;
@@ -658,6 +660,7 @@ abstract class IndicatorNotifier extends ChangeNotifier {
           } else {
             _result = IndicatorResult.none;
             _mode = IndicatorMode.processing;
+            print("662------------ mode = $_mode");
           }
         }
       } else if (_mode == IndicatorMode.done && offset > 0) {
@@ -687,6 +690,7 @@ abstract class IndicatorNotifier extends ChangeNotifier {
         if (userOffsetNotifier.value) {
           if (_indicator.triggerWhenReach) {
             _mode = IndicatorMode.processing;
+            print("691------------ mode = $_mode");
           } else {
             _mode = (_releaseOffset > actualTriggerOffset
                 ? IndicatorMode.ready
@@ -694,6 +698,7 @@ abstract class IndicatorNotifier extends ChangeNotifier {
           }
         } else {
           _mode = IndicatorMode.processing;
+          print("699------------ mode = $_mode");
         }
       } else if (_offset > actualTriggerOffset) {
         if (hasSecondary &&
@@ -718,6 +723,7 @@ abstract class IndicatorNotifier extends ChangeNotifier {
             _mode = _indicator.triggerWhenReach
                 ? IndicatorMode.processing
                 : IndicatorMode.armed;
+            print("722------------ mode = $_mode");
           } else {
             if (_releaseOffset > actualTriggerOffset) {
               if (_indicator.triggerWhenReleaseNoWait) {
@@ -730,6 +736,7 @@ abstract class IndicatorNotifier extends ChangeNotifier {
                 _mode = IndicatorMode.done;
               } else if (_indicator.triggerWhenRelease) {
                 // Immediately trigger the task.
+                print("734------------ mode = $_mode");
                 _mode = IndicatorMode.processing;
               } else {
                 _mode = IndicatorMode.ready;
@@ -740,6 +747,7 @@ abstract class IndicatorNotifier extends ChangeNotifier {
           }
         }
       }
+      //print("744------------ mode = $_mode");
       // Execute the task.
       if (_mode == IndicatorMode.processing) {
         _onTask();
@@ -829,6 +837,7 @@ abstract class IndicatorNotifier extends ChangeNotifier {
   /// Internal use of EasyRefresh.
   void _setMode(IndicatorMode mode) {
     if (_mode == mode) {
+      print("832------------mode = $mode");
       return;
     }
     // Do not continue if not mounted.
@@ -979,7 +988,7 @@ class HeaderNotifier extends IndicatorNotifier {
     }
     // Moving distance
     final move = position.minScrollExtent - value;
-    print("981------计算头部视图距离---$move   value = $value");
+    //print("981------计算头部视图距离---$move   value = $value");
     if (clamping) {
       if (value > position.minScrollExtent) {
         // Rollback first minus offset.

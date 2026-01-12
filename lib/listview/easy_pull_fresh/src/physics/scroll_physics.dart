@@ -205,7 +205,7 @@ class _ERScrollPhysics extends BouncingScrollPhysics {
 
   @override
   double applyBoundaryConditions(ScrollMetrics position, double value) {
-    print("197----------applyBoundaryConditions");
+    //print("197----------applyBoundaryConditions");
     if (headerNotifier._axis != position.axis ||
         headerNotifier._axisDirection != position.axisDirection) {
       headerNotifier._axis = position.axis;

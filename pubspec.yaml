@@ -66,6 +66,7 @@ dependencies:
   carousel_slider: ^5.1.1
   extended_nested_scroll_view: ^6.2.1
   rive: ^0.12.4
+  video_player: ^2.10.1
   #easy pull_refresh 需要的库
 
 

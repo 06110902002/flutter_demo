@@ -19,7 +19,7 @@ public class MainActivity extends FlutterActivity {
     public void configureFlutterEngine(FlutterEngine flutterEngine) {
         super.configureFlutterEngine(flutterEngine);
         handleDeepLink(getIntent(), flutterEngine);
-        registerJavaMethod();
+        registerJavaMethod(flutterEngine);
     }
 
     @Override
@@ -94,14 +94,29 @@ public class MainActivity extends FlutterActivity {
         }
     }
 
-    private void registerJavaMethod() {
+    private void registerJavaMethod(FlutterEngine flutterEngine) {
          String Android_CHANNEL = "com.example.flutter_ios_communication/native";
 
-        new MethodChannel(getFlutterEngine().getDartExecutor().getBinaryMessenger(), Android_CHANNEL)
+        new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), Android_CHANNEL)
                 .setMethodCallHandler(
                         (call, result) -> {
                             if (call.method.equals("getNativeString")) {
                                 result.success("你好，Flutter！这是来自Android的响应。");
+                            } else if (call.method.equals("getBluetoothName")) {
+                                // 读取本机蓝牙名称 (需要 BLUETOOTH_CONNECT 权限, Android 12+)
+                                String btName = null;
+                                try {
+                                    android.bluetooth.BluetoothManager bm =
+                                            (android.bluetooth.BluetoothManager) getSystemService(android.content.Context.BLUETOOTH_SERVICE);
+                                    if (bm != null && bm.getAdapter() != null) {
+                                        btName = bm.getAdapter().getName();
+                                    }
+                                } catch (SecurityException e) {
+                                    e.printStackTrace();
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                                result.success(btName);
                             } else {
                                 result.notImplemented();
                             }

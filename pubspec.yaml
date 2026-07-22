@@ -53,6 +53,10 @@ dependencies:
   flutter_bloc: ^8.1.3
   bloc: ^8.1.2
   flutter_blue_plus: ^2.0.2
+  # 说明: flutter_ble_peripheral 仅支持广播, 无法建立带特征值的 GATT Server,
+  # 因此手机↔手机无法真正收发数据。改用 ble_peripheral (支持 GATT 服务/特征值/notify)。
+  # flutter_ble_peripheral: ^2.1.1
+  ble_peripheral: ^2.4.0
   permission_handler: ^12.0.1
   #flutter_sticky_header: ^0.8.0 # 检查最新版本  使用第三方库的版本
   pull_to_refresh: ^2.0.0
@@ -68,6 +72,9 @@ dependencies:
   rive: ^0.12.4
   video_player: ^2.10.1
   #easy pull_refresh 需要的库
+
+  flutter_local_notifications: ^17.0.0
+  timezone: ^0.9.2
 
 
 dev_dependencies:

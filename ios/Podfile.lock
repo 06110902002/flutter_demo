@@ -1,4 +1,7 @@
 PODS:
+  - ble_peripheral (0.0.1):
+    - Flutter
+    - FlutterMacOS
   - Flutter (1.0.0)
   - flutter_local_notifications (0.0.1):
     - Flutter
@@ -8,12 +11,15 @@ PODS:
     - Flutter
 
 DEPENDENCIES:
+  - ble_peripheral (from `.symlinks/plugins/ble_peripheral/darwin`)
   - Flutter (from `Flutter`)
   - flutter_local_notifications (from `.symlinks/plugins/flutter_local_notifications/ios`)
   - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
   - rive_common (from `.symlinks/plugins/rive_common/ios`)
 
 EXTERNAL SOURCES:
+  ble_peripheral:
+    :path: ".symlinks/plugins/ble_peripheral/darwin"
   Flutter:
     :path: Flutter
   flutter_local_notifications:
@@ -24,6 +30,7 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/rive_common/ios"
 
 SPEC CHECKSUMS:
+  ble_peripheral: 1d6cb378caaef61cd39410652a4de1a68dfba4f2
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   flutter_local_notifications: ad39620c743ea4c15127860f4b5641649a988100
   permission_handler_apple: 4ed2196e43d0651e8ff7ca3483a069d469701f2d
